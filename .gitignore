@@ -1,3 +1,13 @@
+data/
+for_divergentmBERT/
+logs/
 mosesdecoder/
+pretrained_bert/
+runs/
 software/berkeleyaligner/
 software/moses-scripts/
+synthetic*/
+trained_bert/
+trained_bert_new/
+
+*.out

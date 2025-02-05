@@ -12,6 +12,7 @@ import sys
 import argparse
 import nltk
 import itertools
+from tqdm import tqdm
 
 from nltk.tokenize import RegexpTokenizer
 from collections import defaultdict
@@ -65,7 +66,7 @@ def main():
     with io.open(o.data, "r", encoding="utf-8", newline="\n", errors="ignore") as f:
         i = 0
         n_total = 0
-        for line in f:
+        for line in tqdm(f, desc="Loading data"):
             n_total += 1
             if n_total % 100000 == 0:
                 if n_total % 1000000 == 0:
@@ -95,7 +96,6 @@ def main():
     try:
         os.makedirs(output_path)
     except FileExistsError:
-    for i in indices:
         sys.stderr.write("Warning: Output file already exists\n")
 
     if "g" in o.mode:
@@ -133,6 +133,7 @@ def main():
         output_r = open(os.path.join(output_path, "replace"), write_mode)
         output_r_span = open(os.path.join(output_path, "replace.span"), write_mode)
 
+    for i in tqdm(indices, desc="Processing"):
         # Insert sentence
         if "i" in o.mode:
             synthetic_pair = d.insert_pair(i, o)

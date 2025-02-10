@@ -53,7 +53,6 @@ elif [[ ! -d $output_dir ]]; then
 fi
 
 
-python ${scripts_dir}/run_div_margin.py \
                             --node $SLURM_NODELIST \
                             --model_type bert_margin \
                             --model_name_or_path ${model} \
@@ -74,3 +73,4 @@ python ${scripts_dir}/run_div_margin.py \
                             --overwrite_cache \
                             --overwrite_output_dir \
                             --synth_data_dir ${data_dir}/
+time python "${scripts_dir}/run_div_margin.py" \

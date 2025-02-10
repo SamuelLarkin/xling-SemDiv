@@ -46,7 +46,7 @@ readonly model=bert-base-multilingual-cased
 
 test_set=test_synthetic
 
-python "$scripts_dir/run_div_margin.py" \
+time python "$scripts_dir/run_div_margin.py" \
   --node "$SLURM_NODELIST" \
   --model_type bert_margin \
   --model_name_or_path $model \
@@ -65,7 +65,7 @@ python "$scripts_dir/run_div_margin.py" \
 
 test_set="test"
 
-python "$scripts_dir/run_div_margin.py" \
+time python "$scripts_dir/run_div_margin.py" \
   --node "$SLURM_NODELIST" \
   --model_type bert_margin \
   --model_name_or_path $model \
@@ -84,7 +84,7 @@ python "$scripts_dir/run_div_margin.py" \
 
 test_set=unrelated
 
-python "$scripts_dir/run_div_margin.py" \
+time python "$scripts_dir/run_div_margin.py" \
   --node "$SLURM_NODELIST" \
   --model_type bert_margin \
   --model_name_or_path $model \
@@ -102,7 +102,7 @@ python "$scripts_dir/run_div_margin.py" \
 ########################################################################################
 
 test_set=some_meaning_difference
-python "$scripts_dir/run_div_margin.py" \
+time python "$scripts_dir/run_div_margin.py" \
   --node "$SLURM_NODELIST" \
   --model_type bert_margin \
   --model_name_or_path $model \
@@ -120,10 +120,10 @@ python "$scripts_dir/run_div_margin.py" \
 ########################################################################################
 
 echo '> Test synthetic:'
-python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ test_synthetic
+time python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ test_synthetic
 echo '> REFreSD (Divergence vs Equivalence):'
-python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ test
+time python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ test
 echo '> REFreSD (Unrelated vs No meaning difference):'
-python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ unrelated
+time python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ unrelated
 echo '> REFreSD (Some meaning difference vs No meaning difference):'
-python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ some_meaning_difference
+time python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ some_meaning_difference

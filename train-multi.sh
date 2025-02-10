@@ -51,7 +51,6 @@ elif [[ ! -d $output_dir ]]; then
     echo "$output_dir already exists but is not a directory" 1>&2
 fi
 
-python ${scripts_dir}/run_div_multi.py \
                             --node $SLURM_NODELIST \
                             --model_type SemDivMulti \
                             --data_dir ${data_dir} \
@@ -72,4 +71,5 @@ python ${scripts_dir}/run_div_multi.py \
                             --do_predict \
                             --overwrite_cache \
                             --synth_data_dir ${data_dir}/ \
-                            --overwrite_output_dir
+                            --overwrite_output_dir                            --overwrite_output_dirtime python "${scripts_dir}/run_div_multi.py" \
+time python "${scripts_dir}/run_div_multi.py" \

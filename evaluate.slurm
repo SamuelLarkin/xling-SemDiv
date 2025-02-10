@@ -108,4 +108,6 @@ head_node_port=42322
 
 debug_info
 
+head -n 123123 "evaluate.sh" >&2
+
 time bash evaluate.sh

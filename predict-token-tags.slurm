@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# sbatch evaluate.slurm
+# sbatch predict-token-tags.slurm
 
-#SBATCH --job-name=evaluate
-#SBATCH --comment="Xling-SemDiv evaluate"
+#SBATCH --job-name=predict-token-tags
+#SBATCH --comment="Xling-SemDiv predict-token-tags"
 
 # Trixie
 #SBATCH --partition=TrixieMain,JobTesting
@@ -104,8 +104,8 @@ conda activate semdiv
 export TQDM_MININTERVAL=30
 export HF_HOME=/gpfs/projects/DT/mtp/models/HuggingFace
 head_node_ip=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
-head_node_port=42322
+head_node_port=50012
 
 debug_info
 
-time bash evaluate.sh
+time bash predict-token-tags.sh

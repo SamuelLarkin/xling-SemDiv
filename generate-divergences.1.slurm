@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# parallel --dry-run 'sbatch generate-divergences.split.slurm en fr {}' ::: {00..49}
+# parallel --dry-run 'sbatch generate-divergences.1.slurm en fr {}' ::: {00..49}
 
-#SBATCH --job-name=generate-divergences
+#SBATCH --job-name=generate-divergences.1
 #SBATCH --comment="Xling-SemDiv generate-divergences"
 
 # Trixie

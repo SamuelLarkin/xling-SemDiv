@@ -30,7 +30,7 @@ readonly divergent_list=rdpg                         #   List of divergences (e.
 #################################################################################
 
 readonly root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-readonly data_dir=$root_dir/data
+# readonly data_dir=$root_dir/data
 readonly scripts_dir=$root_dir/source
 
 readonly exp_identifier=from_${corpus}.${src}-${tgt}.tsv.filtered_sample_${size}.moses.seed/${sampling_method}/${divergent_list}

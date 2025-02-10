@@ -19,7 +19,6 @@ def main():
         or args.set_ == "unrelated"
         or args.set_ == "some_meaning_difference"
     ):
-
         if args.set_ == "test_synthetic":
             suffix = "best_test_synthetic_preds_gt.txt"
         elif args.set_ == "test":

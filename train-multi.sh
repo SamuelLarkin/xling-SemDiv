@@ -46,30 +46,30 @@ model=bert-base-multilingual-cased
 ##############################################################################
 
 if [[ ! -e $output_dir ]]; then
-    mkdir -p $output_dir
+  mkdir -p "$output_dir"
 elif [[ ! -d $output_dir ]]; then
-    echo "$output_dir already exists but is not a directory" 1>&2
+  echo "$output_dir already exists but is not a directory" 1>&2
 fi
 
-                            --node $SLURM_NODELIST \
-                            --model_type SemDivMulti \
-                            --data_dir ${data_dir} \
-                            --labels ${data_dir}/labels.txt \
-                            --task_name SemDiv \
-                            --model_name_or_path ${model} \
-                            --margin ${margin} \
-                            --max_seq_length 128   \
-                            --output_dir $output_dir \
-                            --num_train_epochs ${epochs} \
-                            --per_gpu_train_batch_size $batch_size \
-                            --save_steps 100 \
-                            --logging_steps 100 \
-                            --do_train \
-                            --do_eval \
-                            --alpha ${alpha} \
-                            --learning_rate ${lr}  \
-                            --do_predict \
-                            --overwrite_cache \
-                            --synth_data_dir ${data_dir}/ \
-                            --overwrite_output_dir                            --overwrite_output_dirtime python "${scripts_dir}/run_div_multi.py" \
 time python "${scripts_dir}/run_div_multi.py" \
+  --alpha ${alpha} \
+  --data_dir "${data_dir}" \
+  --do_eval \
+  --do_predict \
+  --do_train \
+  --labels "${data_dir}/labels.txt" \
+  --learning_rate ${lr} \
+  --logging_steps 100 \
+  --margin "${margin}" \
+  --max_seq_length 128   \
+  --model_name_or_path "${model}" \
+  --model_type SemDivMulti \
+  --node "$SLURM_NODELIST" \
+  --num_train_epochs ${epochs} \
+  --output_dir "${output_dir}" \
+  --overwrite_cache \
+  --overwrite_output_dir \
+  --per_gpu_train_batch_size=${batch_size} \
+  --save_steps 100 \
+  --synth_data_dir "${data_dir}/" \
+  --task_name SemDiv

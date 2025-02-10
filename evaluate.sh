@@ -51,10 +51,10 @@ time python "$scripts_dir/run_div_margin.py" \
   --model_type bert_margin \
   --model_name_or_path $model \
   --task_name SemDiv \
-  --do_eval   \
+  --do_eval \
   --best_checkpoint \
   --evaluation_set $test_set \
-  --data_dir "$data_dir/"   \
+  --data_dir "$data_dir/" \
   --output_dir "$output_dir" \
   --synth_data_dir "$data_dir/" \
   --overwrite_cache
@@ -70,10 +70,10 @@ time python "$scripts_dir/run_div_margin.py" \
   --model_type bert_margin \
   --model_name_or_path $model \
   --task_name SemDiv \
-  --do_eval   \
+  --do_eval \
   --best_checkpoint \
   --evaluation_set $test_set \
-  --data_dir "$data_dir/"   \
+  --data_dir "$data_dir/" \
   --output_dir "$output_dir" \
   --synth_data_dir "$REFreSD_dir/" \
   --overwrite_cache
@@ -89,10 +89,10 @@ time python "$scripts_dir/run_div_margin.py" \
   --model_type bert_margin \
   --model_name_or_path $model \
   --task_name SemDiv \
-  --do_eval   \
+  --do_eval \
   --best_checkpoint \
   --evaluation_set $test_set \
-  --data_dir "$data_dir/"   \
+  --data_dir "$data_dir/" \
   --output_dir "$output_dir" \
   --synth_data_dir "$REFreSD_dir/" \
   --overwrite_cache
@@ -107,10 +107,10 @@ time python "$scripts_dir/run_div_margin.py" \
   --model_type bert_margin \
   --model_name_or_path $model \
   --task_name SemDiv \
-  --do_eval   \
+  --do_eval \
   --best_checkpoint \
   --evaluation_set $test_set \
-  --data_dir "$data_dir/"   \
+  --data_dir "$data_dir/" \
   --output_dir "$output_dir" \
   --synth_data_dir "$REFreSD_dir/" \
   --overwrite_cache

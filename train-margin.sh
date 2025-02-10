@@ -47,30 +47,30 @@ model=bert-base-multilingual-cased
 
 # Create output directory if not exist
 if [[ ! -e $output_dir ]]; then
-    mkdir -p $output_dir
+  mkdir -p "$output_dir"
 elif [[ ! -d $output_dir ]]; then
-    echo "$output_dir already exists but is not a directory" 1>&2
+  echo "$output_dir already exists but is not a directory" 1>&2
 fi
 
 
-                            --node $SLURM_NODELIST \
-                            --model_type bert_margin \
-                            --model_name_or_path ${model} \
-                            --task_name SemDiv \
-                            --do_eval   \
-                            --do_train \
-                            --margin ${margin} \
-                            --save_steps 100 \
-                            --logging_steps 100 \
-                            --evaluate_during_training \
-                            --evaluate_on_training \
-                            --data_dir ${data_dir}/   \
-                            --max_seq_length 128   \
-                            --per_gpu_train_batch_size=${batch_size}   \
-                            --learning_rate ${lr}  \
-                            --num_train_epochs ${epochs}  \
-                            --output_dir ${output_dir} \
-                            --overwrite_cache \
-                            --overwrite_output_dir \
-                            --synth_data_dir ${data_dir}/
 time python "${scripts_dir}/run_div_margin.py" \
+  --data_dir "${data_dir}/" \
+  --do_eval \
+  --do_train \
+  --evaluate_during_training \
+  --evaluate_on_training \
+  --learning_rate ${lr} \
+  --logging_steps 100 \
+  --margin "${margin}" \
+  --max_seq_length 128 \
+  --model_name_or_path "${model}" \
+  --model_type bert_margin \
+  --node "$SLURM_NODELIST" \
+  --num_train_epochs ${epochs} \
+  --output_dir "${output_dir}" \
+  --overwrite_cache \
+  --overwrite_output_dir \
+  --per_gpu_train_batch_size=${batch_size} \
+  --save_steps 100 \
+  --synth_data_dir "${data_dir}/" \
+  --task_name SemDiv

@@ -51,11 +51,27 @@ function _requeue {
 }
 
 if [[ -n "$SLURM_JOBID" ]]; then
-  FORMAT_STRING='JobID,Submit,Start,End,Elapsed,ExitCode,State' \
-  FORMAT_STRING+=',CPUTime,MaxRSS,MaxVMSize,MaxDiskRead,MaxDiskWrite' \
-  FORMAT_STRING+=',AllocCPUs,AllocTRES%-50,NodeList,JobName%-30,Comment%-80'
-  trap "sacct --jobs $SLURM_JOBID --format=$FORMAT_STRING" 0
+  declare -a FORMAT_STRING=(
+    JobIDSubmit
+    Start
+    End
+    Elapsed
+    ExitCode
+    State
+    CPUTime
+    MaxRSS
+    MaxVMSize
+    MaxDiskRead
+    MaxDiskWrite
+    AllocCPUs
+    AllocTRES%-50
+    NodeList
+    JobName%-30
+    Comment%-80
+  )
+  trap "sacct --jobs $SLURM_JOBID --format="$(IFS=','; echo "${FORMAT_STRING[*]}") 0
   trap _requeue USR1
+  unset FORMAT_STRING
 fi
 
 head -n 123123 "$0" >&2
@@ -75,10 +91,7 @@ function debug_info {
     # [How to list variables declared in script in bash?](https://stackoverflow.com/a/1305273)
     # In section SHELL BUILTIN COMMANDS (in the set section) it says: "In
     # posix mode, only shell variables are listed."
-    ( 
-      set -o posix
-      set
-    )
+    ( set -o posix; set; )
     tr ":" "\n" <<< "$LD_LIBRARY_PATH"
     # What conda environment are we in?
     # Record all package versions.

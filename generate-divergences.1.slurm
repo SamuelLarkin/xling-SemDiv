@@ -124,10 +124,10 @@ export NLTK_DATA=$data_dir/nltk_data
 python -m spacy download 'en_core_web_sm'
 
 echo $'\n> Generate synthetic divergences from seed equivalents'
-process="iudrgp"
+readonly process="iudrgp"
 echo $'\n--- Divergent type: '$process$' ---\n'
 
-time python "$scripts_dir/generate_divergent_data.py" \
+time --portability python "$scripts_dir/generate_divergent_data.py" \
   --mode $process \
   --data "$seeds" \
   --output synthetic.split \

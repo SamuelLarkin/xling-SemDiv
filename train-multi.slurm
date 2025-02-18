@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# sbatch train-margin.slurm
+# sbatch train-multi.slurm
 
 #SBATCH --job-name=train-multi
 #SBATCH --comment="Xling-SemDiv train-multi"
@@ -13,11 +13,11 @@
 ##SBATCH --account=nrc_ict__gpu_a100
 
 #SBATCH --gres=gpu:1
-#SBATCH --time=12:00:00
+#SBATCH --time=01:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=40G
+#SBATCH --mem=6G
 
 #SBATCH --open-mode=append
 #SBATCH --requeue
@@ -108,4 +108,4 @@ head_node_port=29507
 
 debug_info
 
-time bash train-multi.sh en fr
+command time --portability bash train-multi.sh en fr

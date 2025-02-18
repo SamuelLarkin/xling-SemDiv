@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# sbatch train-margin.slurm
+# sbatch train-cross.slurm
 
-#SBATCH --job-name=train-margin
-#SBATCH --comment="Xling-SemDiv train-margin"
+#SBATCH --job-name=train-cross
+#SBATCH --comment="Xling-SemDiv train-cross"
 
 # Trixie
 #SBATCH --partition=TrixieMain,JobTesting
@@ -13,7 +13,7 @@
 ##SBATCH --account=nrc_ict__gpu_a100
 
 #SBATCH --gres=gpu:1
-#SBATCH --time=10:00:00
+#SBATCH --time=12:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=32
@@ -108,4 +108,4 @@ head_node_port=29507
 
 debug_info
 
-command time --portability bash train-margin.sh en fr
+command time --portability bash train-cross.sh en fr

@@ -16,31 +16,29 @@
 #                                                                           #
 #############################################################################
 
-##############################################################################
- 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/fs/clip-scratch/ebriakou/anaconda3/lib
+################################################################################
 
 readonly corpus=WikiMatrix                                   #   Corpus from which seed equivalents are extracted
 readonly sampling_method=contrastive_divergence_ranking      #   Sampling method for extracting divergent examples from seeds
 readonly size=50000                                          #   Number of seeds sampled from original corpus
-readonly src=$1                                              #   Source language (language code)
-readonly tgt=$2                                              #   Target language (language code)
+readonly src=${1:?SRC LANG?}
+readonly tgt=${2:?TGT LANG?}
 readonly divergent_list=rdpg                                 #   List of divergences (e.g, 'rd' if divergences include
-                                                    #                      phrase replacement and subtree deletion)
+                                                             #                      phrase replacement and subtree deletion)
 readonly lr=2e-5                                             #   Learning rate
 readonly batch_size=16                                       #   Training batch size
 readonly epochs=5                                            #   Number of training epochs
 readonly margin=5                                            #   Margin used in the training loss
 
-#############################################################################
+################################################################################
 
 readonly root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-readonly data_dir=$root_dir/data
+# readonly data_dir=$root_dir/data
 readonly scripts_dir=$root_dir/source
 
 readonly exp_identifier=from_${corpus}.${src}-${tgt}.tsv.filtered_sample_${size}.moses.seed/${sampling_method}/${divergent_list}
 readonly data_dir=$root_dir/for_divergentmBERT/${exp_identifier}
-readonly output_dir=$root_dir/trained_bert_new/$exp_identifier
+readonly output_dir=$root_dir/trained_bert/$exp_identifier${SLURM_JOBID:+.$SLURM_JOBID}
 readonly model=bert-base-multilingual-cased
 
 ################################################################################
@@ -53,8 +51,8 @@ elif [[ ! -d $output_dir ]]; then
 fi
 
 
-time python "${scripts_dir}/run_div_margin.py" \
-  --data_dir "${data_dir}/" \
+command time --portability python "${scripts_dir}/run_div_margin.py" \
+  --data_dir "${data_dir}" \
   --do_eval \
   --do_train \
   --evaluate_during_training \

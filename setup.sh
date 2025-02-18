@@ -16,15 +16,15 @@
 #############################################################################
 
 # ==== Set directory
-root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-software_dir=$root_dir/software
+readonly root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+readonly software_dir=$root_dir/software
 mkdir -p $software_dir
 
 # Step A: Installing moses scripts
 # http://www.statmt.org/moses/
 # https://github.com/moses-smt/mosesdecoder
 
-moses_scripts_path=$software_dir/moses-scripts
+readonly moses_scripts_path=$software_dir/moses-scripts
 if [ ! -d $moses_scripts_path ]; then
   (
   cd $software_dir
@@ -40,7 +40,7 @@ fi
 # Step B: Place berkeley aligner under software
 # https://code.google.com/archive/p/berkeleyaligner/
 
-berkeley_path=$software_dir/berkeleyaligner
+readonly berkeley_path=$software_dir/berkeleyaligner
 if [ ! -d $berkeley_path ]; then
   mv berkeleyaligner $software_dir
 fi
@@ -48,7 +48,7 @@ fi
 # Step C: Install Huggingface transformers
 # https://github.com/huggingface/transformers
 
-transformers=$software_dir/transformers
+readonly transformers=$software_dir/transformers
 if [ ! -d $transformers/src/transformers.egg-info ]; then
 	cd $transformers
 	pip install -e .

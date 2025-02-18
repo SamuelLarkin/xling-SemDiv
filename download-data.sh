@@ -18,8 +18,8 @@
 set -o errexit
 
 # ==== Set variables
-sample=50000        # number of sentences (top laser score) sample
-                    # this is different that number of seeds
+readonly sample=50000        # number of sentences (top laser score) sample
+                             # this is different that number of seeds
 
 if [ $1 = 'en' ]; then
     non_en=$2
@@ -28,17 +28,17 @@ else
 fi
 
 # ==== Set directories
-root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-data_dir=$root_dir/data
-scripts_dir=$root_dir/source
-software_dir=$root_dir/software
-moses_dir=$software_dir/moses-scripts/tokenizer
+readonly root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+readonly data_dir=$root_dir/data
+readonly scripts_dir=$root_dir/source
+readonly software_dir=$root_dir/software
+readonly moses_dir=$software_dir/moses-scripts/tokenizer
 
 # Create output data directory
 mkdir -p "$data_dir"
 
 # ==> Step 1: Download Wikimatrix data for input language pair
-wikimatrix_path=$data_dir/wikimatrix
+readonly wikimatrix_path=$data_dir/wikimatrix
 if [ ! -s "$wikimatrix_path/WikiMatrix.$1-$2.tsv" ] ; then
   echo '> Downloading wikimatrix data from AWS'
   mkdir -p "$wikimatrix_path"
@@ -115,11 +115,13 @@ if [ ! -s "${wikimatrix_file}.moses.$1" ]; then
 fi
 
 # ==> Step 6: Create aligner configuration
-aligner_configuration=$scripts_dir/aligner.en-${non_en}.conf
+# NOTE: Why the mismatch in conf names?
+readonly aligner_configuration=$scripts_dir/aligner.en-${non_en}.conf  # UNUSED
 if [ ! -s "$software_dir/berkeleyaligner/aligner.$1-$2.conf" ]; then
   echo '> Create aligner configuration'
   cd "$root_dir"
   python "$scripts_dir/aligner_configuration.py" \
+    # NOTE: Why not point to the original data?
     --input-corpus "wikimatrix_aligned/WikiMatrix.$1-$2.tsv.filtered_sample_${sample}.moses" \
     --src en \
     --tgt "$non_en"
@@ -128,8 +130,8 @@ if [ ! -s "$software_dir/berkeleyaligner/aligner.$1-$2.conf" ]; then
 fi
 
 # ==> Step 7: Align sample sentences of Wikimatrix data
-aligned_wikimatrix=${wikimatrix_file}.moses.align
-berkeley_dir=$software_dir/berkeleyaligner
+readonly aligned_wikimatrix=${wikimatrix_file}.moses.align
+readonly berkeley_dir=$software_dir/berkeleyaligner
 if [ ! -s "${aligned_wikimatrix}" ]; then
   echo '> Align wikimatrix data using unsupervised Berkeley aligner'
   cd "$berkeley_dir"
@@ -144,25 +146,28 @@ if [ ! -s "${aligned_wikimatrix}" ]; then
   export CONF=aligner.en-${non_en}.conf
   bash align "$CONF"
 
-  cp "output.en-$non_en/training.align" "${wikimatrix_file}.moses.align"
+  cp "output.en-$non_en/training.align" "${aligned_wikimatrix}"
   cd "$root_dir"
   echo '> done'
 fi
 
 # ==> Step 8: Extract seed equivalents
-seed_equivalents=${wikimatrix_file}.moses.seed
+readonly seed_equivalents=${wikimatrix_file}.moses.seed
 if [ ! -s "${seed_equivalents}" ]; then
   echo '> Extract seed equivalents'
   cd "$data_dir"
 
-  paste "${wikimatrix_file}.moses.en" "${wikimatrix_file}.moses.$non_en" "${wikimatrix_file}.moses.align" > \
-  "${wikimatrix_file}.moses.seed"
+  paste \
+    "${wikimatrix_file}.moses.en" \
+    "${wikimatrix_file}.moses.$non_en" \
+    "${wikimatrix_file}.moses.align" > \
+  "${seed_equivalents}"
   cd "$root_dir"
   echo '> done'
 fi
 
 # ==> Step 9: Download nltk data (stopwords)
-nltk_corpora_dir=$data_dir/nltk_data/corpora
+readonly nltk_corpora_dir=$data_dir/nltk_data/corpora
 if [ ! -d "${nltk_corpora_dir}" ]; then
   echo '> Download stopwords corpora from nltk data'
   mkdir -p "$nltk_corpora_dir"
@@ -174,7 +179,7 @@ if [ ! -d "${nltk_corpora_dir}" ]; then
 fi
 
 # ==> Step 10: Download nltk data (punctuation)
-nltk_punkt_dir=$data_dir/nltk_data/tokenizers
+readonly nltk_punkt_dir=$data_dir/nltk_data/tokenizers
 if [ ! -d "${nltk_punkt_dir}" ]; then
   echo '> Download punctutation corpora from nltk data'
   mkdir -p "$nltk_punkt_dir"
@@ -186,7 +191,7 @@ if [ ! -d "${nltk_punkt_dir}" ]; then
 fi
 
 # ==> Step 11: Download nltk data (taggers)
-nltk_tag_dir=$data_dir/nltk_data/taggers
+readonly nltk_tag_dir=$data_dir/nltk_data/taggers
 if [ ! -d "${nltk_tag_dir}" ]; then
   echo '> Download taggers from nltk data'
   mkdir -p "$nltk_tag_dir"
@@ -198,7 +203,8 @@ if [ ! -d "${nltk_tag_dir}" ]; then
 fi
 
 # ==> Step 12: Download nltk data (wordnet)
-nltk_corpora_dir=$data_dir/nltk_data/corpora
+# nltk_corpora_dir=$data_dir/nltk_data/corpora
+# NOTE: Should the wordnet be in corpora/ when the other models are not?
 if [ ! -d "${nltk_corpora_dir}/wordnet" ]; then
   echo '> Download wordnetfrom nltk data'
   mkdir -p "$nltk_corpora_dir"

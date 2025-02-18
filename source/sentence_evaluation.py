@@ -1,10 +1,29 @@
 #!/usr/bin/env python3
 
 import argparse
-import sys
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import f1_score
+
+
+from dataclasses import dataclass
+from dataclasses_json import dataclass_json
+
+
+@dataclass_json
+@dataclass
+class Metric:
+    precisions_per_class: float
+    recall_per_class: float
+    f1_per_class: float
+
+
+@dataclass_json
+@dataclass
+class Info:
+    label_1: Metric
+    label_2: Metric
+    f1_weighted: float
 
 
 def main():
@@ -40,9 +59,9 @@ def main():
         precisions_per_class = precision_score(gold, preds, average=None)
         recall_per_class = recall_score(gold, preds, average=None)
         f1_per_class = f1_score(gold, preds, average=None)
-        precision_weighted = precision_score(gold, preds, average="weighted")
-        recall_weighted = recall_score(gold, preds, average="weighted")
-        f1_micro = f1_score(gold, preds, average="micro")
+        # precision_weighted = precision_score(gold, preds, average="weighted")
+        # recall_weighted = recall_score(gold, preds, average="weighted")
+        # f1_micro = f1_score(gold, preds, average="micro")
         f1_weighted = f1_score(gold, preds, average="weighted")
 
     re = [
@@ -54,9 +73,24 @@ def main():
         f1_per_class[1],
         f1_weighted,
     ]
-    return re
+
+    info = Info(
+        label_1=Metric(
+            precisions_per_class[0],
+            recall_per_class[0],
+            f1_per_class[0],
+        ),
+        label_2=Metric(
+            precisions_per_class[1],
+            recall_per_class[1],
+            f1_per_class[1],
+        ),
+        f1_weighted=f1_weighted,
+    )
+
+    return info
 
 
 if __name__ == "__main__":
     result = main()
-    sys.exit(result)
+    print(result.to_json(indent=2, ensure_ascii=False))

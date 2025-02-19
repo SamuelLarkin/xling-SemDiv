@@ -614,7 +614,7 @@ def load_and_cache_examples(
     return dataset
 
 
-def main():
+def get_args():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
@@ -858,6 +858,12 @@ def main():
         help="experiment identifier name; this is used to control the name of the logs",
     )
     args = parser.parse_args()
+
+    return args
+
+
+def main():
+    args = get_args()
     args.start_training_time = time.time()
 
     if (

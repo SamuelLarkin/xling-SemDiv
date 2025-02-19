@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Named entity recognition fine-tuning: utilities to work with CoNLL-2003 task. """
+"""Named entity recognition fine-tuning: utilities to work with CoNLL-2003 task."""
 
 # Adapted from Hugging Face library to fine-tune on synthetic divergences using CE token level loss
 
@@ -60,73 +60,77 @@ def read_examples_from_file(data_dir, mode):
     guid_index = 1
     examples = []
     with open(file_path, encoding="utf-8") as f:
-        for id_,line in enumerate(f):
-            line = line.rstrip().split('\t')
-            if mode == 'train' or mode == 'dev':
-                eqv_src = line[0].split(' ')
-                eqv_tgt = line[1].split(' ')
-                div_src = line[2].split(' ')
-                div_tgt = line[3].split(' ')
-                div_src_token_ = line[4].split(' ')
-                div_tgt_token_ = line[5].split(' ')
+        for id_, line in enumerate(f):
+            line = line.rstrip().split("\t")
+            if mode == "train" or mode == "dev":
+                eqv_src = line[0].split(" ")
+                eqv_tgt = line[1].split(" ")
+                div_src = line[2].split(" ")
+                div_tgt = line[3].split(" ")
+                div_src_token_ = line[4].split(" ")
+                div_tgt_token_ = line[5].split(" ")
             else:
                 # Skip header
                 if id_ == 0:
                     continue
-                div_src = line[3].split(' ')
-                div_tgt = line[4].split(' ')
-                div_src_token_ = line[5].split(' ')
-                div_tgt_token_ = line[6].split(' ')
-
+                div_src = line[3].split(" ")
+                div_tgt = line[4].split(" ")
+                div_src_token_ = line[5].split(" ")
+                div_tgt_token_ = line[6].split(" ")
 
             assert len(div_src) == len(div_src_token_)
             assert len(div_tgt) == len(div_tgt_token_)
 
-            span_label_maps = {'CHA':'D', 'ADD':'D', 'O':'O','D':'D'}
+            span_label_maps = {"CHA": "D", "ADD": "D", "O": "O", "D": "D"}
 
             # Binarize span labels
             div_src_token = [span_label_maps[x] for x in div_src_token_]
             div_tgt_token = [span_label_maps[x] for x in div_tgt_token_]
 
-
-            examples.append(InputExample(guid="%s-%d".format(mode, guid_index),
-                                         src_words=div_src,
-                                             tgt_words=div_tgt,
-                                         src_labels=div_src_token,
-                                         tgt_labels=div_tgt_token))
+            examples.append(
+                InputExample(
+                    guid=f"{mode}-{guid_index}",
+                    src_words=div_src,
+                    tgt_words=div_tgt,
+                    src_labels=div_src_token,
+                    tgt_labels=div_tgt_token,
+                )
+            )
 
             guid_index += 1
 
     return examples
 
 
-def convert_examples_to_features(examples,
-                                 label_list,
-                                 max_seq_length,
-                                 tokenizer,
-                                 cls_token_at_end=False,
-                                 cls_token="[CLS]",
-                                 cls_token_segment_id=1,
-                                 sep_token="[SEP]",
-                                 sep_token_extra=False,
-                                 pad_on_left=False,
-                                 pad_token=0,
-                                 pad_token_segment_id=0,
-                                 pad_token_label_id=-1,
-                                 sequence_a_segment_id=0,
-                                 sequence_b_segment_id=1,
-                                 mask_padding_with_zero=True):
-    """ Loads a data file into a list of `InputBatch`s
-        `cls_token_at_end` define the location of the CLS token:
-            - False (Default, BERT/XLM pattern): [CLS] + A + [SEP] + B + [SEP]
-            - True (XLNet/GPT pattern): A + [SEP] + B + [SEP] + [CLS]
-        `cls_token_segment_id` define the segment id associated to the CLS token (0 for BERT, 2 for XLNet)
+def convert_examples_to_features(
+    examples,
+    label_list,
+    max_seq_length,
+    tokenizer,
+    cls_token_at_end=False,
+    cls_token="[CLS]",
+    cls_token_segment_id=1,
+    sep_token="[SEP]",
+    sep_token_extra=False,
+    pad_on_left=False,
+    pad_token=0,
+    pad_token_segment_id=0,
+    pad_token_label_id=-1,
+    sequence_a_segment_id=0,
+    sequence_b_segment_id=1,
+    mask_padding_with_zero=True,
+):
+    """Loads a data file into a list of `InputBatch`s
+    `cls_token_at_end` define the location of the CLS token:
+        - False (Default, BERT/XLM pattern): [CLS] + A + [SEP] + B + [SEP]
+        - True (XLNet/GPT pattern): A + [SEP] + B + [SEP] + [CLS]
+    `cls_token_segment_id` define the segment id associated to the CLS token (0 for BERT, 2 for XLNet)
     """
 
     label_map = {label: i for i, label in enumerate(label_list)}
 
     features = []
-    for (ex_index, example) in enumerate(examples):
+    for ex_index, example in enumerate(examples):
         if ex_index % 10000 == 0:
             logger.info("Writing example %d of %d", ex_index, len(examples))
 
@@ -155,8 +159,8 @@ def convert_examples_to_features(examples,
         # Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
         special_tokens_count = 3 if sep_token_extra else 2
         if len(tokens) > max_seq_length - special_tokens_count:
-            tokens = tokens[:(max_seq_length - special_tokens_count)]
-            label_ids = label_ids[:(max_seq_length - special_tokens_count)]
+            tokens = tokens[: (max_seq_length - special_tokens_count)]
+            label_ids = label_ids[: (max_seq_length - special_tokens_count)]
 
         # The convention in BERT is:
         # (a) For sequence pairs:
@@ -177,14 +181,14 @@ def convert_examples_to_features(examples,
         # used as as the "sentence vector". Note that this only makes sense because
         # the entire model is fine-tuned.
         tokens += [sep_token]
-        
-        #print(tokens)
+
+        # print(tokens)
         label_ids += [pad_token_label_id]
         if sep_token_extra:
             # roberta uses an extra separator b/w pairs of sentences
             tokens += [sep_token]
             label_ids += [pad_token_label_id]
-        segment_ids.extend([sequence_b_segment_id] * (len(tokens)-source_length))
+        segment_ids.extend([sequence_b_segment_id] * (len(tokens) - source_length))
 
         if cls_token_at_end:
             tokens += [cls_token]
@@ -205,14 +209,16 @@ def convert_examples_to_features(examples,
         padding_length = max_seq_length - len(input_ids)
         if pad_on_left:
             input_ids = ([pad_token] * padding_length) + input_ids
-            input_mask = ([0 if mask_padding_with_zero else 1] * padding_length) + input_mask
+            input_mask = (
+                [0 if mask_padding_with_zero else 1] * padding_length
+            ) + input_mask
             segment_ids = ([pad_token_segment_id] * padding_length) + segment_ids
             label_ids = ([pad_token_label_id] * padding_length) + label_ids
         else:
-            input_ids += ([pad_token] * padding_length)
-            input_mask += ([0 if mask_padding_with_zero else 1] * padding_length)
-            segment_ids += ([pad_token_segment_id] * padding_length)
-            label_ids += ([pad_token_label_id] * padding_length)
+            input_ids += [pad_token] * padding_length
+            input_mask += [0 if mask_padding_with_zero else 1] * padding_length
+            segment_ids += [pad_token_segment_id] * padding_length
+            label_ids += [pad_token_label_id] * padding_length
 
         assert len(input_ids) == max_seq_length
         assert len(input_mask) == max_seq_length
@@ -228,10 +234,13 @@ def convert_examples_to_features(examples,
             logger.info("segment_ids: %s", " ".join([str(x) for x in segment_ids]))
             logger.info("label_ids: %s", " ".join([str(x) for x in label_ids]))
         features.append(
-                InputFeatures(input_ids=input_ids,
-                              input_mask=input_mask,
-                              segment_ids=segment_ids,
-                              label_ids=label_ids))
+            InputFeatures(
+                input_ids=input_ids,
+                input_mask=input_mask,
+                segment_ids=segment_ids,
+                label_ids=label_ids,
+            )
+        )
     return features
 
 
@@ -243,4 +252,14 @@ def get_labels(path):
             labels = ["O"] + labels
         return labels
     else:
-        return ["O", "B-MISC", "I-MISC",  "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC"]
+        return [
+            "O",
+            "B-MISC",
+            "I-MISC",
+            "B-PER",
+            "I-PER",
+            "B-ORG",
+            "I-ORG",
+            "B-LOC",
+            "I-LOC",
+        ]

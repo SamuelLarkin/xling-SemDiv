@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Named entity recognition fine-tuning: utilities to work with CoNLL-2003 task. """
+"""Named entity recognition fine-tuning: utilities to work with CoNLL-2003 task."""
 
 # Adapted from Hugging Face library to fine-tune on synthetic divergences using multi task loss
 # @eleftheria
@@ -131,7 +131,7 @@ def read_examples_from_file(data_dir, mode):
             examples.append(
                 InputExample(
                     # TODO: provide the two missing arguments to format().
-                    guid="%s-%d".format(),
+                    guid=f"{mode}-{guid_index}",
                     src_words_eq=eqv_src,
                     tgt_words_eq=eqv_tgt,
                     src_words_dv=div_src,

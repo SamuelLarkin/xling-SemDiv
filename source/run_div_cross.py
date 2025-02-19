@@ -103,7 +103,12 @@ def set_seed(args):
         torch.cuda.manual_seed_all(args.seed)
 
 
-def train(args, train_dataset, model, tokenizer):
+def train(
+    args,
+    train_dataset,
+    model,
+    tokenizer,
+):
     """Train the model"""
     if args.local_rank in [-1, 0]:
         if args.experiment_identifier != "":
@@ -320,7 +325,14 @@ def train(args, train_dataset, model, tokenizer):
     return global_step, tr_loss / global_step
 
 
-def evaluate(args, model, tokenizer, checkpoint, evaluate_on_training=False, prefix=""):
+def evaluate(
+    args,
+    model,
+    tokenizer,
+    checkpoint,
+    evaluate_on_training=False,
+    prefix="",
+):
     # Loop to handle MNLI double evaluation (matched, mis-matched)
     eval_task_names = (
         ("mnli", "mnli-mm") if args.task_name == "mnli" else (args.task_name,)
@@ -435,7 +447,12 @@ def evaluate(args, model, tokenizer, checkpoint, evaluate_on_training=False, pre
     return results
 
 
-def load_and_cache_examples(args, task, tokenizer, evaluate=False):
+def load_and_cache_examples(
+    args,
+    task,
+    tokenizer,
+    evaluate=False,
+):
     if args.local_rank not in [-1, 0] and not evaluate:
         torch.distributed.barrier()
         # Make sure only the first process in distributed training process the dataset,

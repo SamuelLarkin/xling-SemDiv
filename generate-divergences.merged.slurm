@@ -142,7 +142,7 @@ python -m spacy download 'en_core_web_sm'
 cut -f 1-2 "$seeds" > "${seeds}_exclude_align"
 
 echo $'\n> Prepare divergence ranking for sentence-level divergentmBERT'
-time python "$scripts_dir/build_bert_training_data.py" \
+command time --portability python "$scripts_dir/build_bert_training_data.py" \
   --path_to_unlabeled "${seeds}_exclude_align" \
   --path_to_divergences "$root_dir/synthetic/from_$seed_file" \
   --divergent_list rdpg \
@@ -151,7 +151,7 @@ time python "$scripts_dir/build_bert_training_data.py" \
   --divergence-ranking
 
 echo $'\n> Prepare divergence ranking for multi-task divergentmBERT'
-time python "$scripts_dir/build_bert_training_data.py" \
+command time --portability python "$scripts_dir/build_bert_training_data.py" \
   --path_to_unlabeled "${seeds}_exclude_align" \
   --path_to_divergences "$root_dir/synthetic/from_$seed_file" \
   --divergent_list rdpg \

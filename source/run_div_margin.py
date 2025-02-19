@@ -105,7 +105,12 @@ def set_seed(args):
         torch.cuda.manual_seed_all(args.seed)
 
 
-def train(args, train_dataset, model, tokenizer):
+def train(
+    args,
+    train_dataset,
+    model,
+    tokenizer,
+):
     """Train the model"""
     if args.local_rank in [-1, 0]:
         if args.experiment_identifier != "":
@@ -383,6 +388,7 @@ def evaluate(
         eval_dataloader = DataLoader(
             eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size
         )
+
         # Eval!
         logger.info("***** Running evaluation {} *****".format(prefix))
         logger.info("  Num examples = %d", len(eval_dataset))
@@ -493,7 +499,11 @@ def evaluate(
 
 
 def load_and_cache_examples(
-    args, task, tokenizer, evaluate=False, evaluate_on_test=False
+    args,
+    task,
+    tokenizer,
+    evaluate=False,
+    evaluate_on_test=False,
 ):
     if args.local_rank not in [-1, 0] and not evaluate:
         torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
@@ -531,11 +541,14 @@ def load_and_cache_examples(
             examples = processor.get_some_meaning_difference_examples(
                 args.synth_data_dir
             )
-        if args.evaluation_set == "test":
+        elif args.evaluation_set == "test":
             examples = processor.get_test_examples(args.synth_data_dir)
+        else:
+            raise ValueError(f"Invalid evaluation argument ({args.evaluation_set})")
+
         features = convert_examples_to_features(
-            examples,
-            tokenizer,
+            examples=examples,
+            tokenizer=tokenizer,
             label_list=label_list,
             max_length=args.max_seq_length,
             output_mode=output_mode,
@@ -1035,7 +1048,13 @@ def main():
             if args.evaluation_set == "dev":
                 result = evaluate(args, model, tokenizer, "best")
             else:
-                result = evaluate(args, model, tokenizer, "best", evaluate_on_test=True)
+                result = evaluate(
+                    args=args,
+                    model=model,
+                    tokenizer=tokenizer,
+                    checkpoint="best",
+                    evaluate_on_test=True,
+                )
             return result
 
         else:

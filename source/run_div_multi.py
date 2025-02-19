@@ -73,7 +73,14 @@ def set_seed(args):
         torch.cuda.manual_seed_all(args.seed)
 
 
-def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
+def train(
+    args,
+    train_dataset,
+    model,
+    tokenizer,
+    labels,
+    pad_token_label_id,
+):
     """Train the model"""
     if args.local_rank in [-1, 0]:
         tb_writer = SummaryWriter()
@@ -426,7 +433,13 @@ def evaluate(
     return result, preds_sent, sigm, tok_preds_list
 
 
-def load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode):
+def load_and_cache_examples(
+    args,
+    tokenizer,
+    labels,
+    pad_token_label_id,
+    mode,
+):
     if args.local_rank not in [-1, 0] and not evaluate:
         torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
 
@@ -1040,13 +1053,13 @@ def main():
                     args.output_dir, args.evaluation_set + "_predictions.txt"
                 )
                 _, preds_sent, sigm, tok_preds_list = evaluate(
-                    args,
-                    model,
-                    tokenizer,
-                    prefix,
-                    labels,
-                    pad_token_label_id,
-                    args.evaluation_set,
+                    args=args,
+                    model=model,
+                    tokenizer=tokenizer,
+                    checkpoint=prefix,
+                    labels=labels,
+                    pad_token_label_id=pad_token_label_id,
+                    mode=args.evaluation_set,
                     prefix=prefix,
                 )
                 results = subword2token_labels(

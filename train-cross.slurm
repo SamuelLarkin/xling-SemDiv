@@ -119,8 +119,8 @@ conda activate semdiv
 #export http_proxy=http://webproxy.science.gc.ca:8888
 export TQDM_MININTERVAL=30
 export HF_HOME=/gpfs/projects/DT/mtp/models/HuggingFace
-head_node_ip=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
-head_node_port=29507
+readonly head_node_ip=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
+readonly head_node_port=29507
 
 debug_info
 

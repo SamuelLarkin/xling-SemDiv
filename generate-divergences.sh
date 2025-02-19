@@ -15,8 +15,6 @@
 #                                                                           #
 #############################################################################
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/fs/clip-scratch/ebriakou/anaconda3/lib
-
 # ==== Set directories
 readonly root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 readonly data_dir=$root_dir/data
@@ -34,7 +32,7 @@ echo $'\n> Generate synthetic divergences from seed equivalents'
 for process in i u d r g p; do 
   echo $'\n--- Divergent type: '$process$' ---\n'
 
-  time python "$scripts_dir/generate_divergent_data.py" \
+  command time --portability python "$scripts_dir/generate_divergent_data.py" \
     --mode $process \
     --data "$seeds" \
     --output synthetic$job_id \
@@ -46,7 +44,7 @@ done
 cut -f 1-2 "$seeds" > "${seeds}_exclude_align"
 
 echo $'\n> Prepare divergence ranking for sentence-level divergentmBERT'
-time python "$scripts_dir/build_bert_training_data.py" \
+command time --portability python "$scripts_dir/build_bert_training_data.py" \
   --path_to_unlabeled "${seeds}_exclude_align" \
   --path_to_divergences "$root_dir/synthetic$job_id/from_$seed_file" \
   --divergent_list rdpg \
@@ -55,7 +53,7 @@ time python "$scripts_dir/build_bert_training_data.py" \
   --divergence-ranking
 
 echo $'\n> Prepare divergence ranking for multi-task divergentmBERT'
-time python "$scripts_dir/build_bert_training_data.py" \
+command time --portability python "$scripts_dir/build_bert_training_data.py" \
   --path_to_unlabeled "${seeds}_exclude_align" \
   --path_to_divergences "$root_dir/synthetic$job_id/from_$seed_file" \
   --divergent_list rdpg \

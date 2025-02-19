@@ -119,9 +119,9 @@ conda activate semdiv
 #export http_proxy=http://webproxy.science.gc.ca:8888
 export TQDM_MININTERVAL=30
 export HF_HOME=/gpfs/projects/DT/mtp/models/HuggingFace
-head_node_ip=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
-head_node_port=50012
+readonly head_node_ip=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
+readonly head_node_port=50012
 
 debug_info
 
-time bash predict-token-tags.sh
+command time --portability bash predict-token-tags.sh

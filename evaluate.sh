@@ -18,11 +18,9 @@
 ##############################################################################
 
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/fs/clip-scratch/ebriakou/anaconda3/lib
-
 readonly corpus=WikiMatrix                                   #   Corpus from which seed equivalents are extracted
-# readonly sampling_method=contrastive_divergence_ranking      #   Sampling method for extracting divergent examples from seeds
-readonly sampling_method=contrastive_multi_hard              #   Sampling method for extracting divergent examples from seeds
+readonly sampling_method=contrastive_divergence_ranking      #   Sampling method for extracting divergent examples from seeds
+# readonly sampling_method=contrastive_multi_hard              #   Sampling method for extracting divergent examples from seeds
 readonly size=50000                                          #   Number of seeds sampled from original corpus
 readonly src=en                                              #   Source language (language code)
 readonly tgt=fr                                              #   Target language (language code)
@@ -37,8 +35,9 @@ readonly scripts_dir=$root_dir/source
 
 readonly exp_identifier=from_${corpus}.${src}-${tgt}.tsv.filtered_sample_${size}.moses.seed/${sampling_method}/${divergent_list}
 readonly data_dir=$root_dir/for_divergentmBERT/${exp_identifier}
-readonly output_dir=$root_dir/trained_bert/$exp_identifier
-# readonly REFreSD_dir=$root_dir/REFreSD_no_normal/REFreSD_for_huggingface
+# readonly output_dir=$root_dir/trained_bert_new/$exp_identifier${SLURM_JOBID:+.$SLURM_JOBID}
+readonly output_dir=$root_dir/trained_bert_new/$exp_identifier
+# readonly REFreSD_dir=$root_dir/REFreSD_no_normal/REFreSD_for_huggingface  # REFreSD_no_normal doesn't exist
 readonly REFreSD_dir=$root_dir/REFreSD/REFreSD_for_huggingface
 readonly model=bert-base-multilingual-cased
 
@@ -46,9 +45,11 @@ readonly model=bert-base-multilingual-cased
 #                         Synthetic test evaluation                            #
 ################################################################################
 
+# NOTE: test_set is restricted to {test_synthetic, test, unrelated, some_meaning_difference}
 test_set=test_synthetic
 
-time python "$scripts_dir/run_div_margin.py" \
+# Why is this function call using $data_dir where as the others use $REFreSD_dir?
+command time --portability python "$scripts_dir/run_div_margin.py" \
   --node "$SLURM_NODELIST" \
   --model_type bert_margin \
   --model_name_or_path $model \
@@ -67,7 +68,7 @@ time python "$scripts_dir/run_div_margin.py" \
 
 test_set="test"
 
-time python "$scripts_dir/run_div_margin.py" \
+command time --portability python "$scripts_dir/run_div_margin.py" \
   --node "$SLURM_NODELIST" \
   --model_type bert_margin \
   --model_name_or_path $model \
@@ -86,7 +87,7 @@ time python "$scripts_dir/run_div_margin.py" \
 
 test_set=unrelated
 
-time python "$scripts_dir/run_div_margin.py" \
+command time --portability python "$scripts_dir/run_div_margin.py" \
   --node "$SLURM_NODELIST" \
   --model_type bert_margin \
   --model_name_or_path $model \
@@ -104,7 +105,8 @@ time python "$scripts_dir/run_div_margin.py" \
 ########################################################################################
 
 test_set=some_meaning_difference
-time python "$scripts_dir/run_div_margin.py" \
+
+command time python --portability "$scripts_dir/run_div_margin.py" \
   --node "$SLURM_NODELIST" \
   --model_type bert_margin \
   --model_name_or_path $model \
@@ -122,10 +124,10 @@ time python "$scripts_dir/run_div_margin.py" \
 ########################################################################################
 
 echo '> Test synthetic:'
-time python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ test_synthetic
+command time --portability python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ test_synthetic
 echo '> REFreSD (Divergence vs Equivalence):'
-time python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ test
+command time --portability python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ test
 echo '> REFreSD (Unrelated vs No meaning difference):'
-time python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ unrelated
+command time --portability python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ unrelated
 echo '> REFreSD (Some meaning difference vs No meaning difference):'
-time python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ some_meaning_difference
+command time --portability python "$scripts_dir/sentence_evaluation.py" --dict_dir "$output_dir/" --set_ some_meaning_difference

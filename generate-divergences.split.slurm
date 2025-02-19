@@ -143,7 +143,7 @@ echo $'\n> Generate synthetic divergences from seed equivalents'
 readonly process="iudrgp"
 echo $'\n--- Divergent type: '$process$' ---\n'
 
-time --portability python "$scripts_dir/generate_divergent_data.py" \
+commnad time --portability python "$scripts_dir/generate_divergent_data.py" \
   --mode $process \
   --data "$seeds" \
   --output synthetic.split \

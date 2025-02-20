@@ -28,7 +28,7 @@ none_ = "None\n"
 # =====================================================================================================================#
 
 
-def main():
+def get_args():
     parser = argparse.ArgumentParser(
         description="Create training/dev data for divergnemBERT"
     )
@@ -70,14 +70,20 @@ def main():
         help="output directory of syntheticetic training data",
         default="./for_divergentmBERT",
     )
-    o = parser.parse_args()
+    args = parser.parse_args()
 
-    if o.contrastive:
+    return args
+
+
+def main():
+    args = get_args()
+
+    if args.contrastive:
         sampling_mode = "contrastive"
     else:
         sampling_mode = "non-contrastive"
 
-    if o.divergence_ranking and o.balanced:
+    if args.divergence_ranking and args.balanced:
         print(
             "Divergence ranking cannot be extracted under the balanced mode. Abort..."
         )
@@ -87,18 +93,18 @@ def main():
     #                                           CREATE OUTPUT DIRECTORIES                                              #
     # =================================================================================================================#
 
-    original_corpus = o.path_to_divergences.split("/")[-1]
+    original_corpus = args.path_to_divergences.split("/")[-1]
     output_path = os.path.join(
-        o.output, original_corpus, sampling_mode, o.divergent_list
+        args.output, original_corpus, sampling_mode, args.divergent_list
     )
-    total_sents = o.num_training + o.num_dev + o.num_test
+    total_sents = args.num_training + args.num_dev + args.num_test
 
     # Learning to rank output path: Prepare data for divergentmBERT with margin loss
-    if o.learn_to_rank:
+    if args.learn_to_rank:
         if sampling_mode == "contrastive":
             mode = sampling_mode + "_learn2rank"
             output_path_learn2rank = os.path.join(
-                o.output, original_corpus, mode, o.divergent_list
+                args.output, original_corpus, mode, args.divergent_list
             )
             try:
                 os.makedirs(output_path_learn2rank)
@@ -112,11 +118,11 @@ def main():
             exit(0)
 
     # Learning to rank divergences: Prepare data for divergentmBERT with margin loss and divergence ranking
-    if o.divergence_ranking:
+    if args.divergence_ranking:
         if sampling_mode == "contrastive":
             mode = sampling_mode + "_divergence_ranking"
             output_path_divergence_ranking = os.path.join(
-                o.output, original_corpus, mode, o.divergent_list
+                args.output, original_corpus, mode, args.divergent_list
             )
             try:
                 os.makedirs(output_path_divergence_ranking)
@@ -130,11 +136,11 @@ def main():
             exit(0)
 
     # Multi-task learning: Learning to rank seed equivalent VS divergences (sentence and token prediction)
-    if o.multi_task and not o.divergence_ranking:
+    if args.multi_task and not args.divergence_ranking:
         if sampling_mode == "contrastive":
             mode = sampling_mode + "_multi_task"
             output_path_multi_task = os.path.join(
-                o.output, original_corpus, mode, o.divergent_list
+                args.output, original_corpus, mode, args.divergent_list
             )
             try:
                 os.makedirs(output_path_multi_task)
@@ -148,11 +154,11 @@ def main():
             exit(0)
 
     # Multi-task learning: Learning to rank contrastive divergences (sentence and token prediction)
-    if o.multi_task and o.divergence_ranking:
+    if args.multi_task and args.divergence_ranking:
         if sampling_mode == "contrastive":
             mode = sampling_mode + "_multi_hard"
             output_path_multi_task = os.path.join(
-                o.output, original_corpus, mode, o.divergent_list
+                args.output, original_corpus, mode, args.divergent_list
             )
             try:
                 os.makedirs(output_path_multi_task)
@@ -176,28 +182,30 @@ def main():
     # =================================================================================================================#
 
     # Define number of divergences (negatives) to be sampled
-    if o.balanced:
+    if args.balanced:
         total_negs = (
-            o.num_training / len(o.divergent_list)
-            + o.num_dev / len(o.divergent_list)
-            + o.num_test / len(o.divergent_list)
+            args.num_training / len(args.divergent_list)
+            + args.num_dev / len(args.divergent_list)
+            + args.num_test / len(args.divergent_list)
         )
     else:
         total_negs = (
-            o.num_training
-            + o.num_dev / len(o.divergent_list)
-            + o.num_test / len(o.divergent_list)
+            args.num_training
+            + args.num_dev / len(args.divergent_list)
+            + args.num_test / len(args.divergent_list)
         )
 
     # Read seed equivalents
-    with open(o.path_to_unlabeled, "r") as unlabeled:
+    with open(args.path_to_unlabeled, "r") as unlabeled:
         unlabeled = unlabeled.readlines()
 
     # Read divergents
     divs_sentences = []
     divs_sentences_spans = []
-    for div in o.divergent_list:
-        map_to_divergent = os.path.join(o.path_to_divergences, divergent_mappings[div])
+    for div in args.divergent_list:
+        map_to_divergent = os.path.join(
+            args.path_to_divergences, divergent_mappings[div]
+        )
         with open(map_to_divergent, "r") as divergents, open(
             ".".join([map_to_divergent, "span"])
         ) as divergents_spans:
@@ -219,7 +227,7 @@ def main():
     ) as test_synthetic, open("{0}/dev.tsv".format(output_path), "w") as dev:
 
         # Learning to rank files
-        if o.learn_to_rank:
+        if args.learn_to_rank:
             train_learn2rank = open("{0}/train.tsv".format(output_path_learn2rank), "w")
             dev_learn2rank = open("{0}/dev.tsv".format(output_path_learn2rank), "w")
             test_synthetic_learn2rank = open(
@@ -228,7 +236,7 @@ def main():
             test_synthetic_learn2rank.write(bert_header)
 
         # Divergence ranking files
-        if o.divergence_ranking and not o.multi_task:
+        if args.divergence_ranking and not args.multi_task:
             train_divergence_ranking = open(
                 "{0}/train.tsv".format(output_path_divergence_ranking), "w"
             )
@@ -241,7 +249,7 @@ def main():
             test_synthetic_divergence_ranking.write(bert_header)
 
         # Create multi-task hard triplet version of dataset if mode is true
-        if o.multi_task:
+        if args.multi_task:
             multi_train_learn2rank = open(
                 "{0}/train.tsv".format(output_path_multi_task), "w"
             )
@@ -264,10 +272,11 @@ def main():
         if sampling_mode == "non-contrastive":
 
             # Seed equivalents
-            train_n = range(0, o.num_training)
-            dev_n = range(o.num_training, o.num_training + o.num_dev)
+            train_n = range(0, args.num_training)
+            dev_n = range(args.num_training, args.num_training + args.num_dev)
             test_n = range(
-                o.num_training + o.num_dev, o.num_training + o.num_dev + o.num_test
+                args.num_training + args.num_dev,
+                args.num_training + args.num_dev + args.num_test,
             )
 
             for ex in train_n:
@@ -313,25 +322,33 @@ def main():
                         random_p.append(sample)
                         sampled_counter += 1
 
-                if o.balanced:
-                    train_p = random_p[: int(o.num_training / len(o.divergent_list))]
+                if args.balanced:
+                    train_p = random_p[
+                        : int(args.num_training / len(args.divergent_list))
+                    ]
                     dev_p = random_p[
-                        int(o.num_training / len(o.divergent_list)) : int(
-                            (o.num_training + o.num_dev) / len(o.divergent_list)
+                        int(args.num_training / len(args.divergent_list)) : int(
+                            (args.num_training + args.num_dev)
+                            / len(args.divergent_list)
                         )
                     ]
                     test_p = random_p[
-                        int((o.num_training + o.num_dev) / len(o.divergent_list)) :
+                        int(
+                            (args.num_training + args.num_dev)
+                            / len(args.divergent_list)
+                        ) :
                     ]
                 else:
-                    train_p = random_p[: o.num_training]
+                    train_p = random_p[: args.num_training]
                     dev_p = random_p[
-                        o.num_training : int(
-                            o.num_training + o.num_dev / len(o.divergent_list)
+                        args.num_training : int(
+                            args.num_training + args.num_dev / len(args.divergent_list)
                         )
                     ]
                     test_p = random_p[
-                        int(o.num_training + o.num_dev / len(o.divergent_list)) :
+                        int(
+                            args.num_training + args.num_dev / len(args.divergent_list)
+                        ) :
                     ]
 
                 for ex in train_p:
@@ -369,7 +386,7 @@ def main():
         if sampling_mode == "contrastive":
 
             # Seed equivalents and divergences are equally represented in training sets
-            if o.balanced:
+            if args.balanced:
 
                 pn = []
                 counter = 0
@@ -385,9 +402,9 @@ def main():
                     if counter > total_sents:
                         break
 
-                train_pn = pn[: o.num_training]
-                dev_pn = pn[o.num_training : o.num_training + o.num_dev]
-                test_pn = pn[o.num_training + o.num_dev :]
+                train_pn = pn[: args.num_training]
+                dev_pn = pn[args.num_training : args.num_training + args.num_dev]
+                test_pn = pn[args.num_training + args.num_dev :]
 
                 # Prepare data for Cross-Entropy (CE)
                 for ex in train_pn:
@@ -412,7 +429,7 @@ def main():
 
                 for ex in test_pn:
 
-                    if o.multi_task:
+                    if args.multi_task:
                         multi_test_synthetic_learn2rank.write(
                             "0\t"
                             + str(unique_id_per_sentence)
@@ -462,11 +479,11 @@ def main():
                     else:
                         choice = tmp[0]
                         choice_span = tmp_span[0]
-                    if o.learn_to_rank:
+                    if args.learn_to_rank:
                         train_learn2rank.write(
                             "{0}\t{1}".format(unlabeled[ex].rstrip(), choice)
                         )
-                    if o.multi_task:
+                    if args.multi_task:
                         multi_train_learn2rank.write(
                             "{0}\t{1}\t{2}".format(
                                 unlabeled[ex].rstrip(), choice.rstrip(), choice_span
@@ -495,11 +512,11 @@ def main():
                     else:
                         choice = tmp[0]
                         choice_span = tmp_span[0]
-                    if o.learn_to_rank:
+                    if args.learn_to_rank:
                         dev_learn2rank.write(
                             "{0}\t{1}".format(unlabeled[ex].rstrip(), choice)
                         )
-                    if o.multi_task:
+                    if args.multi_task:
                         multi_dev_learn2rank.write(
                             "{0}\t{1}\t{2}".format(
                                 unlabeled[ex].rstrip(), choice.rstrip(), choice_span
@@ -535,7 +552,7 @@ def main():
                             choice,
                         )
                     )
-                    if o.multi_task:
+                    if args.multi_task:
                         multi_test_synthetic_learn2rank.write(
                             "1\t{0}\t{1}\t{2}\t{3}".format(
                                 str(unique_id_per_sentence),
@@ -571,9 +588,9 @@ def main():
                     if counter > total_sents:
                         break
 
-                train_pn = pn[: o.num_training]
-                dev_pn = pn[o.num_training : o.num_training + o.num_dev]
-                test_pn = pn[o.num_training + o.num_dev :]
+                train_pn = pn[: args.num_training]
+                dev_pn = pn[args.num_training : args.num_training + args.num_dev]
+                test_pn = pn[args.num_training + args.num_dev :]
 
                 for ex in train_pn:
                     train.write(
@@ -604,7 +621,7 @@ def main():
                         )
                     )
 
-                    if o.divergence_ranking and not o.multi_task:
+                    if args.divergence_ranking and not args.multi_task:
                         test_synthetic_divergence_ranking.write(
                             "0\t{0}\t{1}\t{2}".format(
                                 str(unique_id_per_sentence),
@@ -613,7 +630,7 @@ def main():
                             )
                         )
 
-                    if o.multi_task:
+                    if args.multi_task:
                         multi_test_synthetic_learn2rank.write(
                             "0\t"
                             + str(unique_id_per_sentence)
@@ -647,14 +664,14 @@ def main():
                                 )
                             )
 
-                            if o.learn_to_rank:
+                            if args.learn_to_rank:
                                 train_learn2rank.write(
                                     "{0}\t{1}".format(
                                         unlabeled[ex].rstrip(), div_type[ex]
                                     )
                                 )
 
-                            if o.multi_task and not o.divergence_ranking:
+                            if args.multi_task and not args.divergence_ranking:
                                 multi_train_learn2rank.write(
                                     "{0}\t{1}\t{2}".format(
                                         unlabeled[ex].rstrip(),
@@ -664,7 +681,7 @@ def main():
                                 )
 
                             # Divergence ranking (sentence-only)
-                            if o.divergence_ranking and not o.multi_task:
+                            if args.divergence_ranking and not args.multi_task:
 
                                 # If fine-grained divergence
                                 if div_id == 2 or div_id == 3:
@@ -719,8 +736,8 @@ def main():
 
                             # Divergence ranking (multi task)
                             if (
-                                o.multi_task
-                                and o.divergence_ranking
+                                args.multi_task
+                                and args.divergence_ranking
                                 and (div_id == 2 or div_id == 3)
                             ):
 
@@ -789,14 +806,14 @@ def main():
                                 )
                             )
 
-                            if o.learn_to_rank:
+                            if args.learn_to_rank:
                                 dev_learn2rank.write(
                                     "{0}\t{1}".format(
                                         unlabeled[ex].rstrip(), div_type[ex]
                                     )
                                 )
 
-                            if o.multi_task and not o.divergence_ranking:
+                            if args.multi_task and not args.divergence_ranking:
                                 multi_dev_learn2rank.write(
                                     "{0}\t{1}\t{2}".format(
                                         unlabeled[ex].rstrip(),
@@ -805,7 +822,7 @@ def main():
                                     )
                                 )
 
-                            if o.divergence_ranking and not o.multi_task:
+                            if args.divergence_ranking and not args.multi_task:
 
                                 if div_id == 2 or div_id == 3:
 
@@ -855,7 +872,7 @@ def main():
                                     else:
                                         continue
 
-                            if o.multi_task and o.divergence_ranking:
+                            if args.multi_task and args.divergence_ranking:
 
                                 if div_id == 2 or div_id == 3:
 
@@ -923,7 +940,7 @@ def main():
                                 )
                             )
 
-                            if o.learn_to_rank:
+                            if args.learn_to_rank:
 
                                 test_synthetic_learn2rank.write(
                                     "1\t{0}\t{1}\t{2}".format(
@@ -933,7 +950,7 @@ def main():
                                     )
                                 )
 
-                            if o.multi_task:
+                            if args.multi_task:
 
                                 multi_test_synthetic_learn2rank.write(
                                     "1\t{0}\t{1}\t{2}\t{3}".format(
@@ -944,7 +961,7 @@ def main():
                                     )
                                 )
 
-                            if o.divergence_ranking and not o.multi_task:
+                            if args.divergence_ranking and not args.multi_task:
 
                                 test_synthetic_divergence_ranking.write(
                                     "1\t{0}\t{1}\t{2}".format(

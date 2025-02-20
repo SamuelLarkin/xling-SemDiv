@@ -1,0 +1,7 @@
+function tsv_to_json {
+  local -r predictions=${1:?PREDICTIONS FILES}
+
+  mlr --itsv --ojson --hi \
+  label "pred,score,src,tgt,label_src,label_tgt,pred_src,pred_tgt" \
+  $predictions
+}

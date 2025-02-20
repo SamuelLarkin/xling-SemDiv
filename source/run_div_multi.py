@@ -294,19 +294,24 @@ def evaluate(
     token_eval=False,
     prefix="",
 ):
-
     if mode != "dev" or mode != "test_synth":
         sentence_eval = True
         token_eval = True
 
     eval_dataset = load_and_cache_examples(
-        args, tokenizer, labels, pad_token_label_id, mode=mode
+        args,
+        tokenizer,
+        labels,
+        pad_token_label_id,
+        mode=mode,
     )
     args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
     # Note that DistributedSampler samples randomly
     eval_sampler = SequentialSampler(eval_dataset)
     eval_dataloader = DataLoader(
-        eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size
+        eval_dataset,
+        sampler=eval_sampler,
+        batch_size=args.eval_batch_size,
     )
 
     # Eval!
@@ -348,7 +353,9 @@ def evaluate(
             outputs = model(**inputs)
 
             if mode == "dev":
-                tmp_eval_loss, logits_first, logits_second, logits_sec_seq = outputs[:4]
+                tmp_eval_loss, _logits_first, logits_second, logits_sec_seq = outputs[
+                    :4
+                ]
                 eval_loss += tmp_eval_loss.mean().item()
             else:
                 logits_second, logits_sec_seq = outputs[:2]
@@ -393,6 +400,7 @@ def evaluate(
         return results
 
     if sentence_eval or token_eval:
+        # FIX: Why is checkpoint hardcoded to 5?
         checkpoint = 5
         output_pred_file = os.path.join(
             args.output_dir,
@@ -543,6 +551,7 @@ def subword2token_labels(
     tokenizer,
     mode="test",
 ):
+    import json
 
     label_map = {
         "CHA": "D",
@@ -554,7 +563,16 @@ def subword2token_labels(
         "3": "D",
         "0": "O",
     }
-    binarize_map = {"CHA": 1, "ADD": 1, "D": 1, "O": 0, "1": 1, "2": 1, "3": 1, "0": 0}
+    binarize_map = {
+        "CHA": 1,
+        "ADD": 1,
+        "D": 1,
+        "O": 0,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "0": 0,
+    }
 
     total_predictions_src, total_gold_src = [], []
     total_predictions_tgt, total_gold_tgt = [], []
@@ -588,7 +606,6 @@ def subword2token_labels(
                     src_sent = line[2].split(" ")
                     tgt_sent = line[3].split(" ")
 
-                prediction_length = len(predictions[example_id])
                 # Get tokens of src and tgt and map them to labels
                 src_toks = [tokenizer.tokenize(word) for word in src_sent]
                 tgt_toks = [tokenizer.tokenize(word) for word in tgt_sent]
@@ -596,11 +613,11 @@ def subword2token_labels(
                 # Extract word-level predictions from tokens
                 for src_tok in src_toks:
                     preds = []
-                    for subword in src_tok:
+                    for _subword in src_tok:
                         # Few sentences are > 128 assume 0 prediction
                         try:
                             preds.append(predictions[example_id].pop(0))
-                        except:
+                        except IndexError:
                             preds.append("O")
                     if "D" in preds:
                         total_predictions_src.append(1)
@@ -611,10 +628,10 @@ def subword2token_labels(
 
                 for tgt_tok in tgt_toks:
                     preds = []
-                    for subword in tgt_tok:
+                    for _subword in tgt_tok:
                         try:
                             preds.append(predictions[example_id].pop(0))
-                        except:
+                        except IndexError:
                             continue
 
                     if "D" in preds:
@@ -624,6 +641,7 @@ def subword2token_labels(
                     else:
                         tgt_word_prediction.append("O")
                         total_predictions_tgt.append(0)
+
                 if mode != "dev":
                     total_gold_src.extend([binarize_map[x] for x in line[5].split(" ")])
                     total_gold_tgt.extend(
@@ -661,6 +679,19 @@ def subword2token_labels(
                     + "\t"
                     + " ".join(tgt_word_prediction)
                     + "\n"
+                )
+                print(
+                    json.dumps(
+                        {
+                            "sent_pred": preds_sent[example_id],
+                            "score": sigm[example_id].tolist(),
+                            "src": src_sent,
+                            "tgt": tgt_sent,
+                            "src_word_pred": src_word_prediction,
+                            "tgt_word_pred": tgt_word_prediction,
+                        },
+                        ensure_ascii=False,
+                    )
                 )
         writer.close()
 
@@ -932,7 +963,7 @@ def main():
         # Distant debugging - see https://code.visualstudio.com/docs/python/debugging#_attach-to-a-local-script
         import ptvsd
 
-        print("Waiting for debugger attach")
+        print("Waiting for debugger attach", file=sys.stderr)
         ptvsd.enable_attach(
             address=(args.server_ip, args.server_port), redirect_output=True
         )

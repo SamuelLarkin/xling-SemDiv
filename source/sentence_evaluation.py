@@ -46,8 +46,10 @@ def main():
             suffix = "best_unrelated_preds_gt.txt"
         elif args.set_ == "some_meaning_difference":
             suffix = "best_some_meaning_difference_preds_gt.txt"
+        else:
+            raise ValueError(f"Invalid set_ ({args.set_})")
 
-        preds, gold, res = [], [], []
+        preds, gold = [], []
 
         with open(args.dict_dir + suffix, "r") as file_:
             file_ = file_.readlines()
@@ -64,15 +66,15 @@ def main():
         # f1_micro = f1_score(gold, preds, average="micro")
         f1_weighted = f1_score(gold, preds, average="weighted")
 
-    re = [
-        precisions_per_class[0],
-        recall_per_class[0],
-        f1_per_class[0],
-        precisions_per_class[1],
-        recall_per_class[1],
-        f1_per_class[1],
-        f1_weighted,
-    ]
+    # re = [
+    #     precisions_per_class[0],
+    #     recall_per_class[0],
+    #     f1_per_class[0],
+    #     precisions_per_class[1],
+    #     recall_per_class[1],
+    #     f1_per_class[1],
+    #     f1_weighted,
+    # ]
 
     info = Info(
         label_1=Metric(

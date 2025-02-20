@@ -64,7 +64,14 @@ def set_seed(args):
         torch.cuda.manual_seed_all(args.seed)
 
 
-def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
+def train(
+    args,
+    train_dataset,
+    model,
+    tokenizer,
+    labels,
+    pad_token_label_id,
+):
     """Train the model"""
     if args.local_rank in [-1, 0]:
         tb_writer = SummaryWriter()
@@ -264,7 +271,15 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id):
     return global_step, tr_loss / global_step
 
 
-def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""):
+def evaluate(
+    args,
+    model,
+    tokenizer,
+    labels,
+    pad_token_label_id,
+    mode,
+    prefix="",
+):
     eval_dataset = load_and_cache_examples(
         args, tokenizer, labels, pad_token_label_id, mode=mode
     )

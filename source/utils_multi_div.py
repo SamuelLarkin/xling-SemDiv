@@ -26,61 +26,54 @@ from io import open
 
 logger = logging.getLogger(__name__)
 
-
-class InputExample(object):
-    """A single training/test example for token classification."""
-
-    def __init__(
-        self,
-        guid,
-        src_words_eq,
-        tgt_words_eq,
-        src_words_dv,
-        tgt_words_dv,
-        src_labels_dv,
-        tgt_labels_dv,
-        label,
-    ):
-        """Constructs a InputExample.
-
-        Args:
-            guid: Unique id for the example.
-            words: list. The words of the sequence.
-            labels: (Optional) list. The labels for each word of the sequence. This should be
-            specified for train and dev examples, but not for test examples.
-        """
-        self.guid = guid
-        self.src_words_eq = src_words_eq
-        self.tgt_words_eq = tgt_words_eq
-        self.src_words_dv = src_words_dv
-        self.tgt_words_dv = tgt_words_dv
-        self.src_labels_dv = src_labels_dv
-        self.tgt_labels_dv = tgt_labels_dv
-        self.label = label
+from dataclasses import dataclass
+from typing import List, Union
 
 
-class InputFeatures(object):
+@dataclass
+class InputExample:
+    """A single training/test example for token classification.
+    Args:
+        guid: Unique id for the example.
+        words: list. The words of the sequence.
+        labels: (Optional) list. The labels for each word of the sequence. This should be
+        specified for train and dev examples, but not for test examples.
+    """
+
+    guid: str
+    src_words_eq: Union[List[str], None]
+    tgt_words_eq: Union[List[str], None]
+    src_words_dv: List[str]
+    tgt_words_dv: List[str]
+    src_labels_dv: List[str]
+    tgt_labels_dv: List[str]
+    label: str
+
+
+@dataclass
+class InputFeatures:
     """A single set of features of data."""
 
-    def __init__(
-        self,
-        input_ids_eq,
-        input_mask_eq,
-        segment_ids_eq,
-        input_ids_dv,
-        input_mask_dv,
-        segment_ids_dv,
-        label_ids_dv,
-        label,
-    ):
-        self.input_ids_eq = input_ids_eq
-        self.input_mask_eq = input_mask_eq
-        self.segment_ids_eq = segment_ids_eq
-        self.input_ids_dv = input_ids_dv
-        self.input_mask_dv = input_mask_dv
-        self.segment_ids_dv = segment_ids_dv
-        self.label_ids_dv = label_ids_dv
-        self.label = label
+    input_ids_eq: Union[List[int], None]
+    input_mask_eq: Union[List[int], None]
+    segment_ids_eq: Union[List[int], None]
+    input_ids_dv: List[int]
+    input_mask_dv: List[int]
+    segment_ids_dv: List[int]
+    label_ids_dv: List[int]
+    label: List[int]  # sentence label
+
+
+SPAN_LABEL_MAPS = {
+    "CHA": "D",
+    "ADD": "D",
+    "O": "O",
+    "D": "D",
+    "1": "D",
+    "2": "D",
+    "3": "D",
+    "0": "O",
+}
 
 
 def read_examples_from_file(data_dir, mode):
@@ -113,24 +106,12 @@ def read_examples_from_file(data_dir, mode):
             assert len(div_src) == len(div_src_token_)
             assert len(div_tgt) == len(div_tgt_token_)
 
-            span_label_maps = {
-                "CHA": "D",
-                "ADD": "D",
-                "O": "O",
-                "D": "D",
-                "1": "D",
-                "2": "D",
-                "3": "D",
-                "0": "O",
-            }
-
             # Binarize span labels
-            div_src_token = [span_label_maps[x] for x in div_src_token_]
-            div_tgt_token = [span_label_maps[x] for x in div_tgt_token_]
+            div_src_token = [SPAN_LABEL_MAPS[x] for x in div_src_token_]
+            div_tgt_token = [SPAN_LABEL_MAPS[x] for x in div_tgt_token_]
 
             examples.append(
                 InputExample(
-                    # TODO: provide the two missing arguments to format().
                     guid=f"{mode}-{guid_index}",
                     src_words_eq=eqv_src,
                     tgt_words_eq=eqv_tgt,
@@ -166,7 +147,6 @@ def convert_examples_to_features(
     sequence_b_segment_id=1,
     mask_padding_with_zero=True,
 ):
-
     label_map = {label: i for i, label in enumerate(label_list)}
 
     features = []
@@ -355,6 +335,7 @@ def convert_examples_to_features(
                 label=example.label,
             )
         )
+
     return features
 
 

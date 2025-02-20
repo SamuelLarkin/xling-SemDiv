@@ -29,7 +29,7 @@ stopwords_list = stopwords.words("english")
 nlp = spacy.load("en_core_web_sm")
 
 
-class synthetic_divergences:
+class SyntheticDivergences:
     def __init__(self):
         self.SRC = []
         self.TGT = []

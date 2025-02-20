@@ -129,7 +129,7 @@ def read_examples_from_file(data_dir, mode):
 
 
 def convert_examples_to_features(
-    examples,
+    examples: List[InputExample],
     label_list,
     max_seq_length,
     tokenizer,
@@ -146,7 +146,7 @@ def convert_examples_to_features(
     sequence_a_segment_id=0,
     sequence_b_segment_id=1,
     mask_padding_with_zero=True,
-):
+) -> List[InputFeatures]:
     label_map = {label: i for i, label in enumerate(label_list)}
 
     features = []
@@ -339,7 +339,7 @@ def convert_examples_to_features(
     return features
 
 
-def get_labels(path):
+def get_labels(path: str) -> List[str]:
     if path:
         with open(path, "r") as f:
             labels = f.read().splitlines()

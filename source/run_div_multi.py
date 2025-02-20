@@ -24,7 +24,11 @@ import glob
 import logging
 import os
 import random
+import sys
 import time
+
+from argparse import Namespace
+from typing import List
 
 import numpy as np
 import torch
@@ -282,14 +286,196 @@ def train(
     return global_step, tr_loss / global_step
 
 
+def predict(
+    args: Namespace,
+    model,
+    tokenizer,
+    labels: List[str],
+    pad_token_label_id: int,
+    mode: str,
+    sentence_eval=True,
+    token_eval=True,
+    prefix="",
+):
+    from utils_multi_div import InputExample
+
+    examples = []
+    for guid_index, (div_src, div_tgt) in enumerate(
+        map(lambda line: line.split("\t"), map(str.rstrip, sys.stdin))
+    ):
+        div_src = div_src.split()
+        div_tgt = div_tgt.split()
+        examples.append(
+            InputExample(
+                guid=f"User-{guid_index}",
+                src_words_eq=None,
+                tgt_words_eq=None,
+                src_words_dv=div_src,
+                tgt_words_dv=div_tgt,
+                src_labels_dv=["O"] * len(div_src),
+                tgt_labels_dv=["O"] * len(div_tgt),
+                label=1,
+            )
+        )
+
+    print(examples, file=sys.stderr)
+
+    features = convert_examples_to_features(
+        examples,
+        labels,
+        args.max_seq_length,
+        tokenizer,
+        mode,
+        cls_token_at_end=bool(args.model_type in ["xlnet"]),
+        cls_token=tokenizer.cls_token,
+        cls_token_segment_id=2 if args.model_type in ["xlnet"] else 0,
+        sep_token=tokenizer.sep_token,
+        sep_token_extra=bool(args.model_type in ["roberta"]),
+        pad_on_left=bool(args.model_type in ["xlnet"]),
+        pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
+        pad_token_segment_id=4 if args.model_type in ["xlnet"] else 0,
+        pad_token_label_id=pad_token_label_id,
+    )
+
+    # At test time we want to predict label and token level ids
+    eval_dataset = TensorDataset(
+        torch.tensor([int(f.label) for f in features], dtype=torch.long),
+        torch.tensor([f.input_ids_dv for f in features], dtype=torch.long),
+        torch.tensor([f.input_mask_dv for f in features], dtype=torch.long),
+        torch.tensor([f.segment_ids_dv for f in features], dtype=torch.long),
+        torch.tensor([f.label_ids_dv for f in features], dtype=torch.long),
+    )
+
+    # Note that DistributedSampler samples randomly
+    eval_dataloader = DataLoader(
+        eval_dataset,
+        sampler=SequentialSampler(eval_dataset),
+        batch_size=args.eval_batch_size,
+    )
+
+    # Eval!
+    logger.info("***** Running prediction %s *****", prefix)
+    logger.info("  Num examples = %d", len(eval_dataset))
+    logger.info("  Batch size = %d", args.eval_batch_size)
+    preds_sents, preds_tok, sent_label_ids, tok_label_ids = [], [], [], []
+    model.eval()
+    for batch in tqdm(eval_dataloader, desc="Evaluating"):
+        batch = tuple(t.to(args.device) for t in batch)
+        with torch.no_grad():
+            inputs = {
+                "input_ids_eq": None,
+                "input_mask_eq": None,
+                "input_ids_dv": batch[1],
+                "input_mask_dv": batch[2],
+                "label_ids_dv": batch[4],
+                "label": batch[0],
+            }
+            if args.model_type != "distilbert":
+                inputs["segment_ids_eq"] = None
+                inputs["segment_ids_dv"] = batch[3]
+
+            outputs = model(**inputs)
+            logits_second, logits_sec_seq = outputs[:2]
+
+        preds_sents.extend(logits_second.detach().cpu().numpy())
+        sent_label_ids.extend(inputs["label"].detach().cpu().numpy())
+        preds_tok.extend(logits_sec_seq.detach().cpu().numpy())
+        tok_label_ids.extend(inputs["label_ids_dv"].detach().cpu().numpy())
+
+    preds_sents = np.array(preds_sents)
+    sent_label_ids = np.array(sent_label_ids)
+    preds_tok = np.array(preds_tok)
+    tok_label_ids = np.array(tok_label_ids)
+
+    label_map = {i: label for i, label in enumerate(labels)}
+
+    if sentence_eval or token_eval:
+        if sentence_eval:
+            # Convert logits to probabilities
+            sigms = [1 / (1 + np.exp(-x)) for x in preds_sents]
+            preds_sents = [1 for _ in range(len(sigms))]
+            for id_, x in enumerate(sigms):
+                if x > 0.5:
+                    preds_sents[id_] = 0
+        else:
+            sigms = None
+
+        if token_eval:
+            # Get token-level predictions
+            preds_tok = np.argmax(preds_tok, axis=2)
+
+            tok_label_list = [[] for _ in range(tok_label_ids.shape[0])]
+            tok_preds_list = [[] for _ in range(tok_label_ids.shape[0])]
+
+            for i in range(tok_label_ids.shape[0]):
+                for j in range(tok_label_ids.shape[1]):
+                    if tok_label_ids[i, j] != pad_token_label_id:
+                        tok_label_list[i].append(label_map[tok_label_ids[i][j]])
+                        tok_preds_list[i].append(label_map[preds_tok[i][j]])
+        else:
+            tok_preds_list = None
+
+    predictions = tok_preds_list
+    logger.info(f"{predictions}")
+
+    # TODO: Assemble the result
+    def glue_back(toks, prediction):
+        """
+        Get tokens of src or tgt and map them to labels.
+        Extract word-level predictions from tokens.
+        """
+        logger.info(toks)
+        logger.info(prediction)
+        word_prediction = []
+        for tok in toks:
+            preds = []
+            for _subword in tok:
+                # few sentences are > 128 assume 0 prediction
+                try:
+                    preds.append(prediction.pop(0))
+                except IndexError:
+                    logger.error("IndexError")
+                    preds.append("O")
+            if "D" in preds:
+                word_prediction.append("D")
+            else:
+                word_prediction.append("O")
+
+        return word_prediction
+
+    src_sents = [e.src_words_dv for e in examples]
+    tgt_sents = [e.tgt_words_dv for e in examples]
+
+    import json
+
+    for src_sent, tgt_sent, prediction, sigm, preds_sent in zip(
+        src_sents, tgt_sents, predictions, sigms, preds_sents
+    ):
+        src_toks = [tokenizer.tokenize(word) for word in src_sent]
+        tgt_toks = [tokenizer.tokenize(word) for word in tgt_sent]
+        src_word_prediction = glue_back(src_toks, prediction)
+        tgt_word_prediction = glue_back(tgt_toks, prediction)
+
+        result = {
+            "sent_pred": preds_sent,
+            "score": sigm.tolist(),
+            "src": " ".join(src_sent),
+            "tgt": " ".join(tgt_sent),
+            "src_word_pred": " ".join(src_word_prediction),
+            "tgt_word_pred": " ".join(tgt_word_prediction),
+        }
+
+        print(json.dumps(result, ensure_ascii=False))
+
+
 def evaluate(
-    args,
+    args: Namespace,
     model,
     tokenizer,
     checkpoint,
-    labels,
-    pad_token_label_id,
-    mode,
+    labels: List[str],
+    pad_token_label_id: int,
+    mode: str,
     sentence_eval=True,
     token_eval=False,
     prefix="",
@@ -305,7 +491,6 @@ def evaluate(
         pad_token_label_id,
         mode=mode,
     )
-    args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
     # Note that DistributedSampler samples randomly
     eval_sampler = SequentialSampler(eval_dataset)
     eval_dataloader = DataLoader(
@@ -441,12 +626,15 @@ def evaluate(
     return result, preds_sent, sigm, tok_preds_list
 
 
+from argparse import Namespace
+
+
 def load_and_cache_examples(
-    args,
+    args: Namespace,
     tokenizer,
     labels,
-    pad_token_label_id,
-    mode,
+    pad_token_label_id: int,
+    mode: str,
 ):
     if args.local_rank not in [-1, 0] and not evaluate:
         torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
@@ -543,7 +731,7 @@ def load_and_cache_examples(
 
 
 def subword2token_labels(
-    args,
+    args: Namespace,
     output_test_predictions_file,
     preds_sent,
     sigm,
@@ -1008,8 +1196,32 @@ def main():
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
+    args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
     args.model_type = args.model_type.lower()
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+
+    # Predict
+    if args.do_predict and args.local_rank in [-1, 0]:
+        prefix = "checkpoint-" + str(args.best_checkpoint)
+        tokenizer = tokenizer_class.from_pretrained(
+            args.output_dir,
+            do_lower_case=args.do_lower_case,
+        )
+        model = model_class.from_pretrained(args.output_dir)
+        model.to(args.device)
+
+        predict(
+            args=args,
+            model=model,
+            tokenizer=tokenizer,
+            labels=labels,
+            pad_token_label_id=pad_token_label_id,
+            mode=None,
+            prefix=prefix,
+        )
+
+        return
+
     config = config_class.from_pretrained(
         args.config_name if args.config_name else args.model_name_or_path,
         num_labels=num_labels,
@@ -1094,12 +1306,12 @@ def main():
                     prefix=prefix,
                 )
                 results = subword2token_labels(
-                    args,
-                    output_predictions_file,
-                    preds_sent,
-                    sigm,
-                    tok_preds_list,
-                    tokenizer,
+                    args=args,
+                    output_test_predictions_file=output_predictions_file,
+                    preds_sent=preds_sent,
+                    sigm=sigm,
+                    predictions=tok_preds_list,
+                    tokenizer=tokenizer,
                     mode=args.evaluation_set,
                 )
                 logger.info("***** Test results *****")

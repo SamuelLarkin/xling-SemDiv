@@ -318,14 +318,14 @@ def predict(
             )
         )
 
-    print(examples, file=sys.stderr)
+    # print(examples, file=sys.stderr)
 
     features = convert_examples_to_features(
-        examples,
-        labels,
-        args.max_seq_length,
-        tokenizer,
-        mode,
+        examples=examples,
+        label_list=labels,
+        max_seq_length=args.max_seq_length,
+        tokenizer=tokenizer,
+        mode=mode,
         cls_token_at_end=bool(args.model_type in ["xlnet"]),
         cls_token=tokenizer.cls_token,
         cls_token_segment_id=2 if args.model_type in ["xlnet"] else 0,
@@ -357,7 +357,7 @@ def predict(
     logger.info("***** Running prediction %s *****", prefix)
     logger.info("  Num examples = %d", len(eval_dataset))
     logger.info("  Batch size = %d", args.eval_batch_size)
-    preds_sents, preds_tok, sent_label_ids, tok_label_ids = [], [], [], []
+    preds_sents, preds_toks, tok_label_ids = [], [], []
     model.eval()
     for batch in tqdm(eval_dataloader, desc="Evaluating"):
         batch = tuple(t.to(args.device) for t in batch)
@@ -378,63 +378,48 @@ def predict(
             logits_second, logits_sec_seq = outputs[:2]
 
         preds_sents.extend(logits_second.detach().cpu().numpy())
-        sent_label_ids.extend(inputs["label"].detach().cpu().numpy())
-        preds_tok.extend(logits_sec_seq.detach().cpu().numpy())
+        preds_toks.extend(logits_sec_seq.detach().cpu().numpy())
         tok_label_ids.extend(inputs["label_ids_dv"].detach().cpu().numpy())
 
     preds_sents = np.array(preds_sents)
-    sent_label_ids = np.array(sent_label_ids)
-    preds_tok = np.array(preds_tok)
+    preds_toks = np.array(preds_toks)
     tok_label_ids = np.array(tok_label_ids)
 
     label_map = {i: label for i, label in enumerate(labels)}
 
     if sentence_eval or token_eval:
+        sigms = None
         if sentence_eval:
             # Convert logits to probabilities
-            sigms = [1 / (1 + np.exp(-x)) for x in preds_sents]
-            preds_sents = [1 for _ in range(len(sigms))]
-            for id_, x in enumerate(sigms):
-                if x > 0.5:
-                    preds_sents[id_] = 0
-        else:
-            sigms = None
+            sigms = 1 / (1 + np.exp(-preds_sents.ravel()))
+            preds_sents = (sigms <= 0.5).astype(int)
 
+        predictions = None
         if token_eval:
             # Get token-level predictions
-            preds_tok = np.argmax(preds_tok, axis=2)
+            preds_toks = np.argmax(preds_toks, axis=2)
 
-            tok_label_list = [[] for _ in range(tok_label_ids.shape[0])]
-            tok_preds_list = [[] for _ in range(tok_label_ids.shape[0])]
+            predictions = [[] for _ in range(tok_label_ids.shape[0])]
 
             for i in range(tok_label_ids.shape[0]):
                 for j in range(tok_label_ids.shape[1]):
                     if tok_label_ids[i, j] != pad_token_label_id:
-                        tok_label_list[i].append(label_map[tok_label_ids[i][j]])
-                        tok_preds_list[i].append(label_map[preds_tok[i][j]])
-        else:
-            tok_preds_list = None
+                        predictions[i].append(label_map[preds_toks[i][j]])
 
-    predictions = tok_preds_list
-    logger.info(f"{predictions}")
-
-    # TODO: Assemble the result
-    def glue_back(toks, prediction):
+    def glue_back(tokens, prediction):
         """
         Get tokens of src or tgt and map them to labels.
         Extract word-level predictions from tokens.
         """
-        logger.info(toks)
-        logger.info(prediction)
         word_prediction = []
-        for tok in toks:
+        for token in tokens:
             preds = []
-            for _subword in tok:
+            for _subword in token:
                 # few sentences are > 128 assume 0 prediction
                 try:
                     preds.append(prediction.pop(0))
                 except IndexError:
-                    logger.error("IndexError")
+                    logger.error("IndexError {}".format(tokens))
                     preds.append("O")
             if "D" in preds:
                 word_prediction.append("D")
@@ -457,8 +442,8 @@ def predict(
         tgt_word_prediction = glue_back(tgt_toks, prediction)
 
         result = {
-            "sent_pred": preds_sent,
-            "score": sigm.tolist(),
+            "sent_pred": int(preds_sent),
+            "score": sigm.item(),
             "src": " ".join(src_sent),
             "tgt": " ".join(tgt_sent),
             "src_word_pred": " ".join(src_word_prediction),
